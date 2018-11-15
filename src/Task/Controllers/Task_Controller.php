@@ -96,16 +96,20 @@ class Task_Controller {
         $board_id      = $request->get_param( 'board_id' );
         $assignees     = $request->get_param( 'assignees' );
         $project       = Project::find( $project_id );
-        $board         = Board::find( $board_id );
+        
         
         if ( empty( $board_id ) ) {
-            $board_id = $data['board_id'] = pm_get_meta($project_id, $project_id, 'task_list', 'list-inbox');
+            $inboxList = pm_get_meta($project_id, $project_id, 'task_list', 'list-inbox');
+            if ($inboxList) {
+                $board_id = $data['board_id'] = $inboxList->meta_value;
+            }
         }
         
         if ( $project ) {
             $task = Task::create( $data );
         }
 
+        $board         = Board::find( $board_id );
         do_action( 'cpm_task_new', $board_id, $task->id, $request->get_params() );
         
         if ( $task && $board ) {

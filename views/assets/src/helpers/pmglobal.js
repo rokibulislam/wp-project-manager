@@ -63,7 +63,7 @@
                 data: {
                 },
                 success (res) {
-                    console.log(res);
+                    
                     if (typeof callback ==='function') {
                         callback(res)
                     }
@@ -80,9 +80,13 @@
                 url: PM_Global_Vars.rest_url + '/pm/v2/projects/' + data.project_id + '/tasks',
                 data: data,
                 success (res) {
-                    console.log(res);
                     if (typeof callback ==='function') {
-                        callback(res)
+                        callback(true, res)
+                    }
+                },
+                error (res) {
+                    if (typeof callback ==='function') {
+                        callback(false, res)
                     }
                 }
             });
@@ -110,7 +114,12 @@
         var element = $('#pmswitchproject');
 
         function show_search_element () {
+            if (newTaskElement.hasClass('active')) { 
+                newTaskElement.css('display', 'none').removeClass('active');
+            }
+
             element.css('display', 'block').addClass('active');
+
             element.find('input').focus();
             element.find('input').val('');
         }
@@ -158,7 +167,7 @@
                 return;
             }
 
-            if($(e.target).closest('#wp-admin-bar-pm_create_task').length) {
+            if($(e.target).closest('#wp-admin-bar-wedevs_pm_new_task').length) {
                 return;
             }
             
@@ -174,7 +183,7 @@
                 otherkey = false;
                 element.css('display', 'none').removeClass('active');
             }
-            if ($(this).find('#pmcteatetask').hasClass('active')) { 
+            if (newTaskElement.hasClass('active')) { 
                 newTaskElement.css('display', 'none').removeClass('active');
             }
 
@@ -269,33 +278,42 @@
 
         // create new task
         var newTaskElement = $('#pmcteatetask');
+        
         function open_task_form () {
-            // console.log(newTaskElement.css('display', 'block'));
-            newTaskElement.css('display', 'block')
+            newTaskElement.css('display', 'block').addClass('active');
         }
 
-        $('#wp-admin-bar-pm_new_task a').bind('click', function(e) {
-            e.preventDefault();
-            open_task_form()
-            PM_Global.pm_get_projects(function (res) {
-                let html = '';
-
-                html +="<select name='project' id='project' >";
-                html += "<option value='0' selected > Select A project </option>";
-                res.data.map((item) => {
-                    html +=  "<option value="+ item.id +"  > "+ item.title +" </option>"
-                });
-                html +="</select>";
-
-                newTaskElement.find('.select-project').html(html);
-
-            });
+        $('#wp-admin-bar-wedevs_pm_new_task a').bind('click', function(e) {
+            
+            newTaskElement.addClass("active").css('display', 'block');
+            
         });
 
         $('#newtaskform').submit(function (event) {
             event.preventDefault();
-            
-        })
+            newTaskElement.addClass('submitting');
+            var data = {
+                title: newTaskElement.find('input#task-title').val(),
+                project_id:  newTaskElement.find('select').val(),
+            }
+
+            PM_Global.pm_create_task(data, function(status, res) {
+                newTaskElement.removeClass('submitting');
+                if ( status) {
+                    newTaskElement.find('input#task-title').val('');
+                } else {
+                    newTaskElement.find('.errors').html("<p>"+res.responseJSON.data.params.project_id[0]+"</p>");
+                }
+            });
+        });
+
+        $(document).bind('keyup', function (e) {
+            let keycode = e.keyCode || e.which;
+            if (keycode === 13 && newTaskElement.hasClass('active') && !newTaskElement.hasClass('submitting')) {
+                e.preventDefault();
+                $('#newtaskform').submit();
+            }
+        });
             
     })
   

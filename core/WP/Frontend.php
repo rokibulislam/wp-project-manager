@@ -329,47 +329,11 @@ function project_text_editor($config) {
     public function pm_toolbar_new_task_creating ($wp_admin_bar) {
         $wp_admin_bar->add_node(
             [
-                'id'		=> 'wedevs_pm_new',
+                'id'		=> 'wedevs_pm_new_task',
                 'title'     => '<span class="ab-icon dashicons dashicons-welcome-add-page"></span>',
-                'href'      => '',
+                'href'      => '#',
                 'parent' => 'top-secondary',
                 
-            ]
-         );
-
-         $wp_admin_bar->add_node(
-            [
-                'id'		=> 'pm_new_task',
-                'title'     => '<span class="ab-icon dashicons dashicons-welcome-add-page"></span> Add a New Task',
-                'href'      => '#',
-                'parent' => 'wedevs_pm_new',
-                'meta'  => [
-                    'title' => __('Add a New Task', 'wedevs-project-manager'),
-                ]
-            ]
-         );
-
-         $wp_admin_bar->add_node(
-            [
-                'id'		=> 'pm_new_task_list',
-                'title'     => ' <span class="ab-icon dashicons dashicons-welcome-add-page"></span> Add Task List',
-                'href'      => 'javascript:void(0)',
-                'parent' => 'wedevs_pm_new',
-                'meta'  => [
-                    'title' => __('Add Task List', 'wedevs-project-manager'),
-                ]
-            ]
-         );
-
-         $wp_admin_bar->add_node(
-            [
-                'id'		=> 'pm_new_project',
-                'title'     => '<span class="ab-icon dashicons dashicons-welcome-add-page"></span> Create New Project',
-                'href'      => '"javascript:void(0)"',
-                'parent' => 'wedevs_pm_new',
-                'meta'  => [
-                    'title' => __('Add a New Task', 'wedevs-project-manager'),
-                ]
             ]
          );
     }

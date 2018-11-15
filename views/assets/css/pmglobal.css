@@ -116,7 +116,10 @@
 }
 
 .pm-cteate-task .new-task-form {
-    padding: 20px;
+    padding: 0px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .pm-global select {
