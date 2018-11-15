@@ -270,10 +270,11 @@
         // create new task
         var newTaskElement = $('#pmcteatetask');
         function open_task_form () {
-            newTaskElement.css('display', 'block').addClass('active');
+            // console.log(newTaskElement.css('display', 'block'));
+            newTaskElement.css('display', 'block')
         }
 
-        $('#wp-admin-bar-pm_create_task a').bind('click', function(e) {
+        $('#wp-admin-bar-pm_new_task a').bind('click', function(e) {
             e.preventDefault();
             open_task_form()
             PM_Global.pm_get_projects(function (res) {
@@ -293,7 +294,6 @@
 
         $('#newtaskform').submit(function (event) {
             event.preventDefault();
-
             
         })
             
