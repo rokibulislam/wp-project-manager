@@ -213,6 +213,7 @@ class ImportActivecollab extends WP_Background_Process
     public function fetchAndSaveTasks($tasks, $pm_project_id){
 
         foreach ($tasks as $task) {
+            $user = $this->getOrCreateUserId($this->makeUname($task['created_by_id']), $task['created_by_id']);
             $pm_taks = new Task();
             $pm_taks->title = $task['title'];
             $pm_taks->description = $task['description'];
@@ -228,6 +229,8 @@ class ImportActivecollab extends WP_Background_Process
             $pm_taks->completed_by = null;
             $pm_taks->completed_at = null;
             $pm_taks->parent_id = 0;
+            $pm_taks->created_by = $user;
+            $pm_taks->updated_by = $user;
             $pm_taks->created_at = $task['created_at'];
             $pm_taks->updated_at = $task['updated_at'];
             $pm_taks->save();
