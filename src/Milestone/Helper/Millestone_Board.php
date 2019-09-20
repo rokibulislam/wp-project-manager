@@ -22,6 +22,7 @@ class Millestone_Board {
 	private $join;
 	private $where;
 	private $limit;
+	private $orderby;
 	private $with;
 	private $millestones;
 	private $millestone_ids;
@@ -85,8 +86,8 @@ class Millestone_Board {
 			return $response;
 		}
 
-		foreach ( $millestones as $key => $$millestone ) {
-			$millestones[$key] = $this->fromat_millestone( $$millestone );
+		foreach ( $millestones as $key => $millestone ) {
+			$millestones[$key] = $this->fromat_millestone( $millestone );
 		}
 
 		$response['data']  = $millestones;
@@ -273,10 +274,12 @@ class Millestone_Board {
 		if ( $meta == 'all' ) {
 			$this->total_task_list_count();
 			$this->total_discussion_board_count();
+			$this->get_meta_tb_data();
+
+			return $this;
 		}
 
-		if( in_array( 'total_task_list', $meta ) ) {
-
+		if( in_array( 'total_task_list', $meta )  ) {
 			$this->total_task_list_count();
 		}
 
@@ -338,7 +341,7 @@ class Millestone_Board {
 		";
 
 
-		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->discussion_ids ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
 
 		foreach ( $results as $key => $result ) {
 			$millestone_id = $result->millestone_id;
@@ -362,7 +365,7 @@ class Millestone_Board {
 		$tb_boardable      = pm_tb_prefix() . 'pm_boardables';
 		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
 
-		$query ="SELECT DISTINCT $tb_boards.*, $tb_boardable.board_id as millestone_id
+		$query ="SELECT DISTINCT count($tb_boards.id) as discussion_board_count, $tb_boardable.board_id as millestone_id
 			FROM $tb_boardable
 			LEFT JOIN $tb_boards on $tb_boards.id = $tb_boardable.boardable_id
 			WHERE $tb_boardable.board_type = 'milestone'
@@ -372,12 +375,12 @@ class Millestone_Board {
 		";
 
 
-		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->discussion_ids ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
 
 		foreach ( $results as $key => $result ) {
 			$millestone_id = $result->millestone_id;
 			unset($result->millestone_id);
-			$metas[$millestone_id] = $result->task_list_count;
+			$metas[$millestone_id] = $result->discussion_board_count;
 		}
 
 		foreach ( $this->millestones as $key => $millestone ) {

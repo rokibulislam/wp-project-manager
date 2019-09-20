@@ -22,6 +22,7 @@ class Discussion_Board {
 	private $join;
 	private $where;
 	private $limit;
+	private $orderby;
 	private $with;
 	private $discussions;
 	private $discussion_ids;
@@ -269,6 +270,9 @@ class Discussion_Board {
 			$this->total_comments_count();
 			$this->total_users_count();
 			$this->total_files_count();
+			$this->get_meta_tb_data();
+
+			return $this;
 		}
 
 		if( in_array('total_comments', $meta ) ) {

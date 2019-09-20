@@ -191,6 +191,9 @@ class Task_List {
 			$this->total_incomplete_tasks_count();
 			$this->total_comments_count();
 			$this->total_assignees_count();
+			$this->get_meta_tb_data();
+
+			return $this;
 		}
 
 		if ( in_array( 'total_tasks', $meta ) ) {

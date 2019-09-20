@@ -10,6 +10,9 @@ $router = Router::singleton();
 $router->get( 'projects/{project_id}/files', 'WeDevs/PM/File/Controllers/File_Controller@index' )
     ->permission(['WeDevs\PM\Core\Permissions\Access_Project']);
 
+$router->get( 'advanced/{project_id}/files', 'WeDevs\PM\File\Helper\File@get_file_boards' )
+    ->permission(['WeDevs\PM\Core\Permissions\Access_Project']);
+
 $router->post( 'projects/{project_id}/files', 'WeDevs/PM/File/Controllers/File_Controller@store' )
     ->permission(['WeDevs\PM\Core\Permissions\Create_File']);
 
