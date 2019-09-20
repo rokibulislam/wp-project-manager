@@ -239,16 +239,10 @@ class Task_List {
             $metas[$list_id][] = $result;
         }
 
-        error_log(print_r($metas,true));
-        error_log(print_r($this->lists,true));
-
         foreach ( $this->lists as $key => $list ) {
             $filter_metas = empty( $metas[$list->id] ) ? [] : $metas[$list->id];
-            	error_log( print_r( $metas,true ) );
-            	error_log( print_r( $list,true ) );
 
             foreach ( $filter_metas as $key => $filter_meta ) {
-            	error_log( print_r( $filter_meta,true ) );
                 $list->meta[$filter_meta->meta_key] = $filter_meta->meta_value;
             }
         }

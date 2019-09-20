@@ -12,6 +12,9 @@ $create_discuss = 'WeDevs\PM\Core\Permissions\Create_Discuss';
 $router->get( 'projects/{project_id}/discussion-boards', 'WeDevs/PM/Discussion_Board/Controllers/Discussion_Board_Controller@index' )
     ->permission([$access]);
 
+$router->get( 'advanced/{project_id}/discussion-boards', 'WeDevs\PM\Discussion_Board\Helper\Discussion_Board@get_discussion_boards' )
+    ->permission(['WeDevs\PM\Core\Permissions\Access_Project']);
+
 $router->post( 'projects/{project_id}/discussion-boards', 'WeDevs/PM/Discussion_Board/Controllers/Discussion_Board_Controller@store' )
     ->permission([$create_discuss])
     ->validator( 'WeDevs\PM\Discussion_Board\Validators\Create_Discussion_Board' )

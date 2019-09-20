@@ -10,6 +10,9 @@ $router = Router::singleton();
 $router->get( 'projects/{project_id}/milestones', 'WeDevs/PM/Milestone/Controllers/Milestone_Controller@index' )
     ->permission(['WeDevs\PM\Core\Permissions\Access_Project']);
 
+$router->get( 'advanced/{project_id}/milestones', 'WeDevs\PM\Milestone\Helper\Millestone_Board@get_millestone_boards' )
+    ->permission(['WeDevs\PM\Core\Permissions\Access_Project']);
+
 $router->post( 'projects/{project_id}/milestones', 'WeDevs/PM/Milestone/Controllers/Milestone_Controller@store' )
     ->permission(['WeDevs\PM\Core\Permissions\Create_Milestone'])
     ->validator( 'WeDevs\PM\Milestone\Validators\Create_Milestone' )
