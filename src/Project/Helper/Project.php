@@ -233,15 +233,15 @@ class Project {
 
 		$items = [
             'id'      	      	  => (int) $project->id,
-			'title'   	  		  => (string) $project->title,
-			'description' 		  => [ 'html' => pm_get_content( $project->description ), 'content' => $project->description ],
+			'title'   	  		  => isset( $project->title ) ? (string) $project->title : '',
+			'description' 		  => isset( $project->description ) ? [ 'html' => pm_get_content( $project->description ), 'content' => $project->description ] : '',
 			'status'	  		  => isset( $project->status ) ? $project->status : null,
 			'budget'	  		  => isset( $project->budget ) ? $project->budget : null,
 			'pay_rate'	  		  => isset( $project->pay_rate ) ? $project->pay_rate : null,
 			'est_completion_date' => isset( $project->est_completion_date ) ? format_date( $project->est_completion_date ) : null,
 			'order'				  => isset( $project->order ) ? $project->order : null,
 			'projectable_type'	  => isset( $project->projectable_type ) ? $project->projectable_type : null,
-			'favourite'	  		  => $project->favourite,
+			'favourite'	  		  => isset( $project->favourite ) ? $project->favourite : false,
 			'created_at'		  => isset( $project->created_at ) ? format_date( $project->created_at ) : null,
 			'list_inbox'		  => $listmeta,
         ];
@@ -536,6 +536,14 @@ class Project {
 	}
 
 	public function get_prepare_format( $ids, $is_string = false ) {
+
+		if ( ! is_array( $ids ) ) {
+			if ( strpos( $ids, ',' ) !== false ) {
+				$ids = str_replace( ' ', '', $ids );
+				$ids = explode( ',', $ids );
+			}
+		}
+
         // how many entries will we select?
         $how_many = count( $ids );
 
@@ -1007,7 +1015,7 @@ class Project {
 			'favourite_project', $current_user_id
 		);
 
-		$this->join .= $wpdb->prepare( " LEFT JOIN {$wpdb->prefix}pm_role_user ON {$wpdb->prefix}pm_role_user.project_id={$wpdb->prefix}pm_projects.id" );
+		$this->join .= " LEFT JOIN {$wpdb->prefix}pm_role_user ON {$wpdb->prefix}pm_role_user.project_id={$wpdb->prefix}pm_projects.id";
 
 		return $this;
 	}
@@ -1134,7 +1142,7 @@ class Project {
 			$inUsers = get_current_user_id();
 		}
 
-		$this->join  .= " LEFT JOIN {$this->tb_project_user} ON {$this->tb_project_user}.project_id={$this->tb_project}.id";
+		//$this->join  .= " LEFT JOIN {$this->tb_project_user} ON {$this->tb_project_user}.project_id={$this->tb_project}.id";
 
 		if ( is_array( $inUsers ) ) {
 			$query_format = pm_get_prepare_format( $inUsers );
@@ -1271,6 +1279,8 @@ class Project {
 				{$this->where}
 				{$this->orderby}
 				{$this->limit}";
+		// echo $wpdb->prepare( $query, 1, 1 );
+		// die();
 
 		$results = $wpdb->get_results( $wpdb->prepare( $query, 1, 1 ) );
 

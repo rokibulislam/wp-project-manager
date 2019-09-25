@@ -6,11 +6,8 @@ use WP_REST_Request;
 // 	with: 'Millestone,users',
 // 	per_page: '10',
 // 	select: 'id, title',
-// 	categories: [2, 4],
-// 	assignees: [1,2],
 // 	id: [1,2],
 // 	title: 'Rocket', 'test'
-// 	status: '0',
 // 	page: 1,
 //  orderby: [title=>'asc', 'id'=>desc]
 // },
@@ -57,7 +54,6 @@ class Millestone_Board {
 			->get()
 			->with()
 			->meta();
-
 		$response = $self->format_millestones( $self->millestones );
 
 		if( $self->is_single_query && count( $response['data'] ) ) {
@@ -110,14 +106,14 @@ class Millestone_Board {
 
 	public function fromat_millestone( $millestone ) {
 		$items = [
-			'id'          => (int) $millestone->id,
-			'title'       => (string) $millestone->title,
-			'description' => pm_filter_content_url( $millestone->description ),
-			'order'       => (int) $millestone->order,
-			'status'      => $millestone->status,
-			'created_at'  => format_date( $millestone->created_at ),
-			'extra'       => true,
-			'project_id'  => $millestone->project_id
+			'id'           => (int) $millestone->id,
+			'title'        => (string) $millestone->title,
+			'description'  => isset( $millestone->description ) ? pm_filter_content_url( $millestone->description ) : null,
+			'achieve_date' => isset( $millestone->achieve_date ) ? pm_format_date( $millestone->achieve_date ) : null,
+			'achieve_at'   => isset( $millestone->achieve_at ) ? pm_format_date( $millestone->achieve_at ) : null,
+			'order'        => (int) $millestone->order,
+			'status'       => $millestone->status,
+			'created_at'   => format_date( $millestone->created_at )
         ];
 
 		$select_items = empty( $this->query_params['select'] ) ? null : $this->query_params['select'];
@@ -192,21 +188,23 @@ class Millestone_Board {
 			return $this;
 		}
 
-		$tb_pm_comments = pm_tb_prefix() . 'pm_comments';
-		$tb_boards      = pm_tb_prefix() . 'pm_boards';
-		$tb_boardable   = pm_tb_prefix() . 'pm_boardables';
-
+		$tb_pm_comments    = pm_tb_prefix() . 'pm_comments';
+		$tb_boards         = pm_tb_prefix() . 'pm_boards';
+		$tb_boardable      = pm_tb_prefix() . 'pm_boardables';
 		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
+		$query_data        = $this->millestone_ids;
 
 		$query ="SELECT DISTINCT $tb_boards.*, $tb_boardable.board_id as millestone_id
 			FROM $tb_boardable
 			LEFT JOIN $tb_boards on $tb_boards.id = $tb_boardable.boardable_id
-			WHERE $tb_boardable.board_type = 'milestone'
-			AND $tb_boardable.boardable_type = 'discussion_board'
-			AND $tb_boardable.board_id IN ($millestone_format)
+			WHERE $tb_boardable.board_id IN ($millestone_format)
+			AND $tb_boardable.board_type = %s
+			AND $tb_boardable.boardable_type = %s
 		";
 
-		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
+		array_push( $query_data, 'milestone', 'discussion_board' );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 
 		foreach ( $results as $key => $result ) {
 			$millestone_id = $result->millestone_id;
@@ -235,21 +233,23 @@ class Millestone_Board {
 			return $this;
 		}
 
-		$tb_pm_comments = pm_tb_prefix() . 'pm_comments';
-		$tb_boards      = pm_tb_prefix() . 'pm_boards';
-		$tb_boardable   = pm_tb_prefix() . 'pm_boardables';
-
+		$tb_pm_comments    = pm_tb_prefix() . 'pm_comments';
+		$tb_boards         = pm_tb_prefix() . 'pm_boards';
+		$tb_boardable      = pm_tb_prefix() . 'pm_boardables';
 		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
+		$query_data        = $this->millestone_ids;
 
 		$query ="SELECT DISTINCT $tb_boards.*, $tb_boardable.board_id as millestone_id
 			FROM $tb_boardable
 			LEFT JOIN $tb_boards on $tb_boards.id = $tb_boardable.boardable_id
-			WHERE $tb_boardable.board_type = 'milestone'
-			AND $tb_boardable.boardable_type = 'task_list'
-			AND $tb_boardable.board_id IN ($millestone_format)
+			WHERE $tb_boardable.board_id IN ($millestone_format)
+			AND $tb_boardable.board_type = %s
+			AND $tb_boardable.boardable_type = %s
 		";
 
-		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
+		array_push( $query_data, 'milestone', 'task_list' );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 
 		foreach ( $results as $key => $result ) {
 			$millestone_id = $result->millestone_id;
@@ -275,7 +275,7 @@ class Millestone_Board {
 			$this->total_task_list_count();
 			$this->total_discussion_board_count();
 			$this->get_meta_tb_data();
-
+			// $this->set_millestone_single_meta();
 			return $this;
 		}
 
@@ -292,19 +292,58 @@ class Millestone_Board {
 		return $this;
 	}
 
+	public function set_millestone_single_meta() {
+
+		if ( empty( $this->millestone_ids ) ) {
+			return $this;
+		}
+
+		global $wpdb;
+		$metas             = [];
+		$tb_meta           = pm_tb_prefix() . 'pm_meta';
+		$current_user_id   = get_current_user_id();
+		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
+		$query_data        = $this->millestone_ids;
+
+		$query = "SELECT DISTINCT $tb_meta.meta_key, $tb_meta.meta_value, $tb_meta.entity_id
+			FROM $tb_meta
+			WHERE $tb_meta.entity_id IN ($millestone_format)
+				AND $tb_meta.entity_type = %s
+			";
+
+		array_push( $query_data, 'milestone' );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
+
+		foreach ( $results as $key => $result ) {
+			$entity_id = $result->entity_id;
+			unset( $result->entity_id );
+			$metas[$entity_id] = $result;
+		}
+
+		foreach ( $this->millestones as $key => $millestone ) {
+			//$millestone-> = isset( $metas[$millestone->id] ) ? $metas[$millestone->id]->meta_key : null;
+		}
+
+		return $this;
+	}
+
 	private function get_meta_tb_data() {
         global $wpdb;
 		$metas             = [];
 		$tb_projects       = pm_tb_prefix() . 'pm_projects';
 		$tb_meta           = pm_tb_prefix() . 'pm_meta';
 		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
+		$query_data        = $this->millestone_ids;
 
         $query = "SELECT DISTINCT $tb_meta.meta_key, $tb_meta.meta_value, $tb_meta.entity_id
             FROM $tb_meta
             WHERE $tb_meta.entity_id IN ($millestone_format)
-            AND $tb_meta.entity_type = 'milestone'";
+            AND $tb_meta.entity_type = %s ";
 
-        $results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
+        array_push( $query_data, 'milestone' );
+
+        $results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 
         foreach ( $results as $key => $result ) {
             $millestone_id = $result->entity_id;
@@ -317,6 +356,7 @@ class Millestone_Board {
 
             foreach ( $filter_metas as $key => $filter_meta ) {
                 $millestone->meta[$filter_meta->meta_key] = $filter_meta->meta_value;
+                $millestone->{$filter_meta->meta_key} = $filter_meta->meta_value;
             }
         }
 
@@ -330,18 +370,20 @@ class Millestone_Board {
 		$tb_boards         = pm_tb_prefix() . 'pm_boards';
 		$tb_boardable      = pm_tb_prefix() . 'pm_boardables';
 		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
+		$query_data        = $this->millestone_ids;
 
 		$query ="SELECT DISTINCT  count($tb_boards.id) as task_list_count, $tb_boardable.board_id as millestone_id
 			FROM $tb_boardable
 			LEFT JOIN $tb_boards on $tb_boards.id = $tb_boardable.boardable_id
-			WHERE $tb_boardable.board_type = 'milestone'
-			AND $tb_boardable.boardable_type = 'task_list'
-			AND $tb_boardable.board_id IN ($millestone_format)
+			WHERE $tb_boardable.board_id IN ($millestone_format)
+			AND  $tb_boardable.board_type = %s
+			AND $tb_boardable.boardable_type = %s
 			group by $tb_boardable.board_id
 		";
 
+		array_push( $query_data, 'milestone', 'task_list' );
 
-		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 
 		foreach ( $results as $key => $result ) {
 			$millestone_id = $result->millestone_id;
@@ -364,18 +406,20 @@ class Millestone_Board {
 		$tb_boards         = pm_tb_prefix() . 'pm_boards';
 		$tb_boardable      = pm_tb_prefix() . 'pm_boardables';
 		$millestone_format = pm_get_prepare_format( $this->millestone_ids );
+		$query_data        = $this->millestone_ids;
 
 		$query ="SELECT DISTINCT count($tb_boards.id) as discussion_board_count, $tb_boardable.board_id as millestone_id
 			FROM $tb_boardable
 			LEFT JOIN $tb_boards on $tb_boards.id = $tb_boardable.boardable_id
-			WHERE $tb_boardable.board_type = 'milestone'
-			AND $tb_boardable.boardable_type = 'discussion_board'
-			AND $tb_boardable.board_id IN ($millestone_format)
+			WHERE $tb_boardable.board_id IN ($millestone_format)
+			AND $tb_boardable.board_type = %s
+			AND $tb_boardable.boardable_type = %s
 			group by $tb_boardable.board_id
 		";
 
+		array_push( $query_data, 'milestone', 'discussion_board' );
 
-		$results = $wpdb->get_results( $wpdb->prepare( $query, $this->millestone_ids ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 
 		foreach ( $results as $key => $result ) {
 			$millestone_id = $result->millestone_id;
@@ -410,6 +454,7 @@ class Millestone_Board {
 	}
 
 	private function select() {
+		global $wpdb;
 		$select = '';
 
 		if ( empty( $this->query_params['select'] ) ) {
@@ -436,6 +481,13 @@ class Millestone_Board {
 	}
 
 	private function join() {
+		// global $wpdb;
+		// $this->join .= $wpdb->prepare("
+		// 	LEFT JOIN {$wpdb->prefix}pm_meta ON {$wpdb->prefix}pm_meta.entity_id={$wpdb->prefix}pm_boards.id
+		// 		AND {$wpdb->prefix}pm_meta.entity_type=%s",
+		// 	'milestone'
+		// );
+
 		return $this;
 	}
 
@@ -453,6 +505,7 @@ class Millestone_Board {
 	 * @return class object
 	 */
 	private function where_id() {
+		global $wpdb;
 		$id = isset( $this->query_params['id'] ) ? $this->query_params['id'] : false;
 
 		if ( empty( $id ) ) {
@@ -460,12 +513,15 @@ class Millestone_Board {
 		}
 
 		if ( is_array( $id ) ) {
-			$query_id = implode( ',', $id );
-			$this->where .= " AND {$this->tb_millestone}.id IN ($query_id)";
+			// $query_id = implode( ',', $id );
+			// $this->where .= " AND {$this->tb_millestone}.id IN ($query_id)";
+			$query_format = pm_get_prepare_format( $id );
+			$this->where .= $wpdb->prepare( " AND {$this->tb_millestone}.id IN ($query_format)", $id );
 		}
 
 		if ( !is_array( $id ) ) {
-			$this->where .= " AND {$this->tb_millestone}.id IN ($id)";
+			$this->where .= $wpdb->prepare( " AND {$this->tb_millestone}.id IN (%d)", $id );
+			//$this->where .= " AND {$this->tb_millestone}.id IN ($id)";
 
 			$explode = explode( ',', $id );
 
@@ -483,18 +539,21 @@ class Millestone_Board {
 	 * @return class object
 	 */
 	private function where_title() {
+		global $wpdb;
 		$title = isset( $this->query_params['title'] ) ? $this->query_params['title'] : false;
 
 		if ( empty( $title ) ) {
 			return $this;
 		}
 
-		$this->where .= " AND {$this->tb_millestone}.title LIKE '%$title%'";
+		// $this->where .= " AND {$this->tb_millestone}.title LIKE '%$title%'";
+		$this->where .= $wpdb->prepare( " AND {$this->tb_project}.title LIKE %s", '%'.$title.'%' );
 
 		return $this;
 	}
 
 	private function where_project_id() {
+		global $wpdb;
 		$id = isset( $this->query_params['project_id'] ) ? $this->query_params['project_id'] : false;
 
 		if ( empty( $id ) ) {
@@ -502,12 +561,15 @@ class Millestone_Board {
 		}
 
 		if ( is_array( $id ) ) {
-			$query_id = implode( ',', $id );
-			$this->where .= " AND {$this->tb_millestone}.project_id IN ($query_id)";
+			// $query_id = implode( ',', $id );
+			// $this->where .= " AND {$this->tb_millestone}.project_id IN ($query_id)";
+			$query_format = pm_get_prepare_format( $id );
+			$this->where .= $wpdb->prepare( " AND {$this->tb_millestone}.project_id IN ($query_format)", $id );
 		}
 
 		if ( !is_array( $id ) ) {
-			$this->where .= " AND {$this->tb_millestone}.project_id = $id";
+			// $this->where .= " AND {$this->tb_millestone}.project_id = $id";
+			$this->where .= $wpdb->prepare( " AND {$this->tb_millestone}.project_id IN (%d)", $id );
 		}
 
 		return $this;
@@ -523,7 +585,8 @@ class Millestone_Board {
 			return $this;
 		}
 
-		$this->limit = " LIMIT {$this->get_offset()},{$this->get_per_page()}";
+		// $this->limit = " LIMIT {$this->get_offset()},{$this->get_per_page()}";
+		$this->limit = $wpdb->prepare( " LIMIT %d,%d", $this->get_offset(), $this->get_per_page() );
 
 		return $this;
 	}
@@ -590,9 +653,13 @@ class Millestone_Board {
 		$query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT {$this->select}
 			FROM {$this->tb_millestone}
 			{$this->join}
-			WHERE 1=1 {$this->where} AND $this->tb_millestone.type='milestone'
+			WHERE %d=%d {$this->where} AND $this->tb_millestone.type=%s
 			{$this->orderby} {$this->limit} ";
-		$results = $wpdb->get_results( $query );
+
+		// echo $wpdb->prepare( $query, 1, 1, 'milestone' );
+		// die();
+
+		$results = $wpdb->get_results(  $wpdb->prepare( $query, 1, 1, 'milestone' ) );
 
 		$this->found_rows = $wpdb->get_var( "SELECT FOUND_ROWS()" );
 		$this->millestones = $results;

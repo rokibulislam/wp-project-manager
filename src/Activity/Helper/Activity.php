@@ -1,9 +1,9 @@
 <?php
-namespace WeDevs\PM\File\Helper;
+namespace WeDevs\PM\Activity\Helper;
 
 use WP_REST_Request;
 // data: {
-// 	with: 'File,users',
+// 	with: 'Activity,users',
 // 	per_page: '10',
 // 	select: 'id, title',
 // 	categories: [2, 4],
@@ -15,7 +15,7 @@ use WP_REST_Request;
 //  orderby: [title=>'asc', 'id'=>desc]
 // },
 
-class File {
+class Activity {
 	private static $_instance;
 	private $query_params;
 	private $select;
@@ -24,8 +24,8 @@ class File {
 	private $limit;
 	private $orderby;
 	private $with;
-	private $files;
-	private $file_ids;
+	private $activitys;
+	private $activity_ids;
 	private $is_single_query = false;
 
 	public static function getInstance() {
@@ -40,9 +40,9 @@ class File {
     	$this->set_table_name();
     }
 
-    public static function get_file_boards( WP_REST_Request $request ) {
-		$files = self::get_results( $request->get_params() );
-		wp_send_json( $files );
+    public static function get_activity_boards( WP_REST_Request $request ) {
+		$activitys = self::get_results( $request->get_params() );
+		wp_send_json( $activitys );
 	}
 
 	public static function get_results( $params ) {
@@ -58,7 +58,7 @@ class File {
 			->with()
 			->meta();
 
-		$response = $self->format_files( $self->files );
+		$response = $self->format_activitys( $self->activitys );
 
 		if( $self->is_single_query && count( $response['data'] ) ) {
 			return ['data' => $response['data'][0]] ;
@@ -74,24 +74,24 @@ class File {
 	 *
 	 * @return array
 	 */
-	public function format_files( $files ) {
+	public function format_activitys( $activitys ) {
 		$response = [
 			'data' => [],
 			'meta' => []
 		];
 
-		if ( ! is_array( $files ) ) {
-			$response['data'] = $this->fromat_file( $files );
+		if ( ! is_array( $activitys ) ) {
+			$response['data'] = $this->fromat_activity( $activitys );
 
 			return $response;
 		}
 
-		foreach ( $files as $key => $file ) {
-			$files[$key] = $this->fromat_file( $file );
+		foreach ( $activitys as $key => $activity ) {
+			$activitys[$key] = $this->fromat_activity( $activity );
 		}
 
-		$response['data']  = $files;
-		$response ['meta'] = $this->set_file_meta();
+		$response['data']  = $activitys;
+		$response ['meta'] = $this->set_activity_meta();
 
 		return $response;
 	}
@@ -99,7 +99,7 @@ class File {
 	/**
 	 * Set meta data
 	 */
-	private function set_file_meta() {
+	private function set_activity_meta() {
 		return [
 			'pagination' => [
 				'total'   => $this->found_rows,
@@ -108,16 +108,14 @@ class File {
 		];
 	}
 
-	public function fromat_file( $file ) {
+	public function fromat_activity( $activity ) {
 		$items = [
-			'id'            => (int) $file->id,
-			'fileable_id'   => isset( $file->fileable_id ) ? (string) $file->fileable_id : null,
-			'directory'     => isset( $file->directory ) ? pm_filter_content_url( $file->directory ) : null,
-			'attachment_id' => isset( $file->attachment_id ) ? (int) $file->attachment_id : null,
-			'attached_at'   => isset( $file->status ) ? $file->status : null,
-			'created_at'    => isset( $file->created_at ) ? format_date( $file->created_at ) : null,
-			'fileable'      => null,
-			'project_id'    => isset( $file->project_id ) ? $file->project_id : null
+			'id'            => (int) $activity->id,
+			'action'        => (string) $activity->action,
+			'action_type'   => $activity->action_type,
+			'committed_at'  => format_date( $activity->created_at ),
+			'resource_id'   => $activity->resource_id,
+			'resource_type' => $activity->resource_type
         ];
 
 		$select_items = empty( $this->query_params['select'] ) ? null : $this->query_params['select'];
@@ -128,8 +126,8 @@ class File {
 		}
 
 		if ( empty( $select_items ) ) {
-			$items = $this->item_with( $items,$file );
-			$items = $this->item_meta( $items,$file );
+			$items = $this->item_with( $items,$activity );
+			$items = $this->item_meta( $items,$activity );
 			return $items;
 		}
 
@@ -139,87 +137,166 @@ class File {
 			}
 		}
 
-		$items = $this->item_with( $items, $file );
-		$items = $this->item_meta( $items, $file );
+		$items = $this->item_with( $items, $activity );
+		$items = $this->item_meta( $items, $activity );
 
 		return $items;
 	}
 
-	private function item_with( $items, $file ) {
+	private function item_with( $items, $activity ) {
 		$with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
 
 		if ( ! is_array( $with ) ) {
 			$with = explode( ',', $with );
 		}
 
-		$file_with_items =  array_intersect_key( (array) $file, array_flip( $with ) );
+		$activity_with_items =  array_intersect_key( (array) $activity, array_flip( $with ) );
 
-		$items = array_merge($items,$file_with_items);
+		$items = array_merge($items,$activity_with_items);
 
 		return $items;
 	}
 
-	private function item_meta( $items, $file ) {
-		$meta = empty( $this->query_params['file_meta'] ) ? [] : $this->query_params['file_meta'];
+	private function item_meta( $items, $activity ) {
+		$meta = empty( $this->query_params['activity_meta'] ) ? [] : $this->query_params['activity_meta'];
 
 		if( ! $meta ) {
 			return $items;
 		}
 
-		$items['meta'] = empty( $file->meta ) ? [ 'data' => [] ] : [ 'data' => $file->meta];
+		$items['meta'] = empty( $activity->meta ) ? [ 'data' => [] ] : [ 'data' => $activity->meta];
 
 		return $items;
 	}
 
 	private function with() {
-		$this->files = apply_filters( 'pm_file_with',$this->files, $this->file_ids, $this->query_params );
+		$this->include_project()->include_actor();
+		$this->activitys = apply_filters( 'pm_activity_with',$this->activitys, $this->activity_ids, $this->query_params );
+
+		return $this;
+	}
+
+	private function include_actor() {
+		global $wpdb;
+		$with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
+
+		if ( ! is_array( $with ) ) {
+			$with = explode( ',', $with );
+		}
+
+		$projects = [];
+
+		if ( ! in_array( 'actor', $with ) ) {
+			return $this;
+		}
+
+		$tb_activities   = pm_tb_prefix() . 'pm_activities';
+		$tb_users        = pm_tb_prefix() . 'users';
+		$activity_format = pm_get_prepare_format( $this->activity_ids );
+		$query_data      = $this->activity_ids;
+
+		$query ="SELECT DISTINCT $tb_users.*, $tb_activities.id as activity_id  FROM $tb_users
+				LEFT JOIN $tb_activities  ON $tb_activities.actor_id = $tb_users.id
+				WHERE $tb_activities.id IN ($activity_format)" ;
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
+
+		foreach ( $results as $key => $result ) {
+			$activity_id = $result->activity_id;
+			unset($result->activity_id);
+			$projects[$activity_id] = $result;
+		}
+
+		foreach ( $this->activitys as $key => $activity ) {
+			$activity->actor['data'] = empty( $projects[$activity->id] ) ? [] : $projects[$activity->id];
+		}
+
+		return $this;
+	}
+
+	private function include_project() {
+		global $wpdb;
+		$with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
+
+		if ( ! is_array( $with ) ) {
+			$with = explode( ',', $with );
+		}
+
+		$projects = [];
+
+		if ( ! in_array( 'project', $with ) ) {
+			return $this;
+		}
+
+		$tb_projects     = pm_tb_prefix() . 'pm_projects';
+		$tb_activities   = pm_tb_prefix() . 'pm_activities';
+		$activity_format = pm_get_prepare_format( $this->activity_ids );
+		$query_data      = $this->activity_ids;
+		$query ="SELECT DISTINCT $tb_projects.*,$tb_activities.id as activity_id  FROM $tb_projects
+				LEFT JOIN $tb_activities  ON $tb_activities.project_id = $tb_projects.id
+				WHERE $tb_activities.id IN ($activity_format)" ;
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
+
+		foreach ( $results as $key => $result ) {
+			$activity_id = $result->activity_id;
+			unset($result->activity_id);
+			$projects[$activity_id] = $result;
+		}
+
+		foreach ( $this->activitys as $key => $activity ) {
+			$activity->project['data'] = empty( $projects[$activity->id] ) ? [] : $projects[$activity->id];
+		}
 
 		return $this;
 	}
 
 	private function meta() {
-		$meta = empty( $this->query_params['file_meta'] ) ? [] : $this->query_params['file_meta'];
+		$meta = empty( $this->query_params['activity_meta'] ) ? [] : $this->query_params['activity_meta'];
 
 		if ( ! is_array( $meta ) && $meta != 'all' ) {
 			$meta = explode( ',', $meta );
 		}
 
 		if( $meta == 'all' ) {
-			$this->get_meta_tb_data();
+			// $this->get_meta_tb_data();
 
 			return $this;
 		}
 
-		// $this->get_meta_tb_data();
+		//$this->get_meta_tb_data();
 
 		return $this;
 	}
 
 	private function get_meta_tb_data() {
         global $wpdb;
-		$metas             = [];
-		$tb_projects = pm_tb_prefix() . 'pm_projects';
-		$tb_meta     = pm_tb_prefix() . 'pm_meta';
-		$file_format = pm_get_prepare_format( $this->file_ids );
+		$metas           = [];
+		$tb_projects     = pm_tb_prefix() . 'pm_projects';
+		$tb_meta         = pm_tb_prefix() . 'pm_meta';
+		$activity_format = pm_get_prepare_format( $this->activity_ids );
+		$query_data      = $this->activity_ids;
 
         $query = "SELECT DISTINCT $tb_meta.meta_key, $tb_meta.meta_value, $tb_meta.entity_id
             FROM $tb_meta
-            WHERE $tb_meta.entity_id IN ($file_format)
-            AND $tb_meta.entity_type = 'file'";
+            WHERE $tb_meta.entity_id IN ($activity_format)
+            AND $tb_meta.entity_type = %s ";
 
-        $results = $wpdb->get_results( $wpdb->prepare( $query, $this->file_ids ) );
+        array_push( $query_data, 'activity' );
+
+        $results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
 
         foreach ( $results as $key => $result ) {
-            $file_id = $result->entity_id;
+            $activity_id = $result->entity_id;
             unset( $result->entity_id );
-            $metas[$file_id][] = $result;
+            $metas[$activity_id][] = $result;
         }
 
-        foreach ( $this->files as $key => $file ) {
-            $filter_metas = empty( $metas[$file->id] ) ? [] : $metas[$file->id];
+        foreach ( $this->activitys as $key => $activity ) {
+            $filter_metas = empty( $metas[$activity->id] ) ? [] : $metas[$activity->id];
 
             foreach ( $filter_metas as $key => $filter_meta ) {
-                $file->meta[$filter_meta->meta_key] = $filter_meta->meta_value;
+                $activity->meta[$filter_meta->meta_key] = $filter_meta->meta_value;
             }
         }
 
@@ -248,7 +325,7 @@ class File {
 		$select = '';
 
 		if ( empty( $this->query_params['select'] ) ) {
-			$this->select = $this->tb_file . '.*';
+			$this->select = $this->tb_activity . '.*';
 
 			return $this;
 		}
@@ -262,7 +339,7 @@ class File {
 
 		foreach ( $select_items as $key => $item ) {
 			$item = str_replace( ' ', '', $item );
-			$select .= $this->tb_file . '.' . $item . ',';
+			$select .= $this->tb_activity . '.' . $item . ',';
 		}
 
 		$this->select = substr( $select, 0, -1 );
@@ -296,11 +373,11 @@ class File {
 
 		if ( is_array( $id ) ) {
 			$query_id = implode( ',', $id );
-			$this->where .= " AND {$this->tb_file}.id IN ($query_id)";
+			$this->where .= " AND {$this->tb_activity}.id IN ($query_id)";
 		}
 
 		if ( !is_array( $id ) ) {
-			$this->where .= " AND {$this->tb_file}.id IN ($id)";
+			$this->where .= " AND {$this->tb_activity}.id IN ($id)";
 
 			$explode = explode( ',', $id );
 
@@ -324,7 +401,7 @@ class File {
 			return $this;
 		}
 
-		$this->where .= " AND {$this->tb_file}.title LIKE '%$title%'";
+		$this->where .= " AND {$this->tb_activity}.title LIKE '%$title%'";
 
 		return $this;
 	}
@@ -338,11 +415,11 @@ class File {
 
 		if ( is_array( $id ) ) {
 			$query_id = implode( ',', $id );
-			$this->where .= " AND {$this->tb_file}.project_id IN ($query_id)";
+			$this->where .= " AND {$this->tb_activity}.project_id IN ($query_id)";
 		}
 
 		if ( !is_array( $id ) ) {
-			$this->where .= " AND {$this->tb_file}.project_id = $id";
+			$this->where .= " AND {$this->tb_activity}.project_id = $id";
 		}
 
 		return $this;
@@ -423,34 +500,32 @@ class File {
 		$id = isset( $this->query_params['id'] ) ? $this->query_params['id'] : false;
 
 		$query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT {$this->select}
-			FROM {$this->tb_file}
+			FROM {$this->tb_activity}
 			{$this->join}
-			WHERE 1=1 {$this->where} AND $this->tb_file.type='file'
+			WHERE %d=%d {$this->where}
 			{$this->orderby} {$this->limit} ";
 
-		// echo $query;
-		// die();
-		$results = $wpdb->get_results( $query );
+		$results = $wpdb->get_results( $wpdb->prepare( $query, 1,1 ));
+
 
 		$this->found_rows = $wpdb->get_var( "SELECT FOUND_ROWS()" );
-		$this->files = $results;
+		$this->activitys = $results;
 
 		if ( ! empty( $results ) && is_array( $results ) ) {
-			$this->file_ids = wp_list_pluck( $results, 'id' );
-			error_log(print_r($this->file_ids,true));
+			$this->activity_ids = wp_list_pluck( $results, 'id' );
 		}
 
 		if ( ! empty( $results ) && !is_array( $results ) ) {
-			$this->file_ids = [$results->id];
-			error_log(print_r($this->file_ids,true));
+			$this->activity_ids = [$results->id];
 		}
+
 		return $this;
 	}
 
 
 	private function set_table_name() {
 		$this->tb_project          = pm_tb_prefix() . 'pm_projects';
-		$this->tb_file             = pm_tb_prefix() . 'pm_files';
+		$this->tb_activity         = pm_tb_prefix() . 'pm_activities';
 		$this->tb_task             = pm_tb_prefix() . 'pm_tasks';
 		$this->tb_project_user     = pm_tb_prefix() . 'pm_role_user';
 		$this->tb_task_user        = pm_tb_prefix() . 'pm_assignees';
