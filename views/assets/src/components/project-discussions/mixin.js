@@ -89,7 +89,8 @@ export default {
             var conditions = self.generateConditions(args.conditions);
 
             var request = {
-                url: self.base_url + '/pm/v2/projects/'+self.project_id+'/discussion-boards/'+self.$route.params.discussion_id+'?'+conditions, ///with=comments',
+                // url: self.base_url + '/pm/v2/projects/'+self.project_id+'/discussion-boards/'+self.$route.params.discussion_id+'?'+conditions, ///with=comments',
+                url: self.base_url + '/pm/v2/advanced/'+self.project_id+'/discussion-boards/'+self.$route.params.discussion_id+'?'+conditions, ///with=comments',
                 success (res) {
                     self.addDiscussMeta(res.data);
                     self.$store.commit( 'projectDiscussions/setDiscuss', res.data );

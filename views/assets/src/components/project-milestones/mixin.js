@@ -88,6 +88,7 @@ export default {
             pre_define = {
                 conditions :{
                     with:'discussion_boards,task_lists',
+                    millestone_meta: 'all',
                     per_page: 20,
                     page:1,
                 },
