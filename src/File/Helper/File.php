@@ -114,7 +114,7 @@ class File {
 			'fileable_id'   => isset( $file->fileable_id ) ? (string) $file->fileable_id : null,
 			'directory'     => isset( $file->directory ) ? pm_filter_content_url( $file->directory ) : null,
 			'attachment_id' => isset( $file->attachment_id ) ? (int) $file->attachment_id : null,
-			'attached_at'   => isset( $file->status ) ? $file->status : null,
+			'attached_at'   => isset( $file->updated_at ) ? format_date( $file->updated_at ) : null,
 			'created_at'    => isset( $file->created_at ) ? format_date( $file->created_at ) : null,
 			'fileable'      => null,
 			'project_id'    => isset( $file->project_id ) ? $file->project_id : null
@@ -190,7 +190,7 @@ class File {
 			return $this;
 		}
 
-		// $this->get_meta_tb_data();
+		$this->get_meta_tb_data();
 
 		return $this;
 	}
@@ -428,8 +428,8 @@ class File {
 			WHERE 1=1 {$this->where} AND $this->tb_file.type='file'
 			{$this->orderby} {$this->limit} ";
 
-		// echo $query;
-		// die();
+		echo $query;
+		die();
 		$results = $wpdb->get_results( $query );
 
 		$this->found_rows = $wpdb->get_var( "SELECT FOUND_ROWS()" );

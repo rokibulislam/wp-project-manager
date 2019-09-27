@@ -109,8 +109,8 @@ class Millestone_Board {
 			'id'           => (int) $millestone->id,
 			'title'        => (string) $millestone->title,
 			'description'  => isset( $millestone->description ) ? pm_filter_content_url( $millestone->description ) : null,
-			'achieve_date' => isset( $millestone->achieve_date ) ? pm_format_date( $millestone->achieve_date ) : null,
-			'achieve_at'   => isset( $millestone->achieve_at ) ? pm_format_date( $millestone->achieve_at ) : null,
+			'achieve_date' => isset( $millestone->achieve_date ) ? format_date( $millestone->achieve_date ) : format_date(null),
+			'achieve_at'   => isset( $millestone->updated_at ) ? format_date( $millestone->updated_at ) : format_date(null),
 			'order'        => (int) $millestone->order,
 			'status'       => $millestone->status,
 			'created_at'   => format_date( $millestone->created_at )
@@ -126,6 +126,7 @@ class Millestone_Board {
 		if ( empty( $select_items ) ) {
 			$items = $this->item_with( $items,$millestone );
 			$items = $this->item_meta( $items,$millestone );
+
 			return $items;
 		}
 
@@ -162,7 +163,7 @@ class Millestone_Board {
 			return $items;
 		}
 
-		$items['meta'] = empty( $millestone->meta ) ? [ 'data' => [] ] : [ 'data' => $millestone->meta];
+		$items['meta'] = empty( $millestone->meta ) ? [] : [ $millestone->meta ];
 
 		return $items;
 	}
@@ -184,7 +185,7 @@ class Millestone_Board {
 
 		$discussions = [];
 
-		if ( ! in_array( 'discussions', $with ) ) {
+		if ( ! in_array( 'discussion_boards', $with ) ) {
 			return $this;
 		}
 
@@ -213,7 +214,7 @@ class Millestone_Board {
 		}
 
 		foreach ( $this->millestones as $key => $millestone ) {
-			$millestone->discussions['data'] = empty( $discussions[$millestone->id] ) ? [] : $discussions[$millestone->id];
+			$millestone->discussion_boards['data'] = empty( $discussions[$millestone->id] ) ? [] : $discussions[$millestone->id];
 		}
 
 		return $this;
@@ -578,7 +579,7 @@ class Millestone_Board {
 
 
 	private function limit() {
-
+		global $wpdb;
 		$per_page = isset( $this->query_params['per_page'] ) ? $this->query_params['per_page'] : false;
 
 		if ( $per_page === false || $per_page == '-1' ) {
@@ -586,7 +587,7 @@ class Millestone_Board {
 		}
 
 		// $this->limit = " LIMIT {$this->get_offset()},{$this->get_per_page()}";
-		$this->limit = $wpdb->prepare( " LIMIT %d,%d", $this->get_offset(), $this->get_per_page() );
+		$this->limit = $wpdb->prepare( " LIMIT %d,%d ", 0, 20 );
 
 		return $this;
 	}

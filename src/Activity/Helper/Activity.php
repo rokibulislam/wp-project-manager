@@ -109,10 +109,19 @@ class Activity {
 	}
 
 	public function fromat_activity( $activity ) {
+
+		if ( $activity->action == 'cpm_migration' ){
+            $message = $activity->meta['text'];
+        } else {
+            $message = pm_get_text( "activities.{$activity->action}" );
+        }
+
 		$items = [
 			'id'            => (int) $activity->id,
+			'message'       => $message,
 			'action'        => (string) $activity->action,
 			'action_type'   => $activity->action_type,
+			'meta'          =>  unserialize( $activity->meta ),
 			'committed_at'  => format_date( $activity->created_at ),
 			'resource_id'   => $activity->resource_id,
 			'resource_type' => $activity->resource_type
@@ -149,6 +158,7 @@ class Activity {
 		if ( ! is_array( $with ) ) {
 			$with = explode( ',', $with );
 		}
+		array_push( $with, 'actor', 'project' );
 
 		$activity_with_items =  array_intersect_key( (array) $activity, array_flip( $with ) );
 
@@ -178,17 +188,17 @@ class Activity {
 
 	private function include_actor() {
 		global $wpdb;
-		$with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
+		// $with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
 
-		if ( ! is_array( $with ) ) {
-			$with = explode( ',', $with );
-		}
+		// if ( ! is_array( $with ) ) {
+		// 	$with = explode( ',', $with );
+		// }
 
-		$projects = [];
+		// $projects = [];
 
-		if ( ! in_array( 'actor', $with ) ) {
-			return $this;
-		}
+		// if ( ! in_array( 'actor', $with ) ) {
+		// 	return $this;
+		// }
 
 		$tb_activities   = pm_tb_prefix() . 'pm_activities';
 		$tb_users        = pm_tb_prefix() . 'users';
@@ -203,6 +213,11 @@ class Activity {
 
 		foreach ( $results as $key => $result ) {
 			$activity_id = $result->activity_id;
+			$results[$key]->manage_capability = (int) pm_has_manage_capability($result->ID);
+			$results[$key]->create_capability = (int) pm_has_project_create_capability($result->ID);
+			$results[$key]->avatar_url        = get_avatar_url( $result->user_email );
+			$results[$key]->github            = get_user_meta($result->ID,'github' ,true);
+			$results[$key]->bitbucket         = get_user_meta($result->ID,'bitbucket', true);
 			unset($result->activity_id);
 			$projects[$activity_id] = $result;
 		}
@@ -216,17 +231,17 @@ class Activity {
 
 	private function include_project() {
 		global $wpdb;
-		$with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
+		// $with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
 
-		if ( ! is_array( $with ) ) {
-			$with = explode( ',', $with );
-		}
+		// if ( ! is_array( $with ) ) {
+		// 	$with = explode( ',', $with );
+		// }
 
-		$projects = [];
+		// $projects = [];
 
-		if ( ! in_array( 'project', $with ) ) {
-			return $this;
-		}
+		// if ( ! in_array( 'project', $with ) ) {
+		// 	return $this;
+		// }
 
 		$tb_projects     = pm_tb_prefix() . 'pm_projects';
 		$tb_activities   = pm_tb_prefix() . 'pm_activities';
@@ -259,12 +274,12 @@ class Activity {
 		}
 
 		if( $meta == 'all' ) {
-			// $this->get_meta_tb_data();
+			$this->get_meta_tb_data();
 
 			return $this;
 		}
 
-		//$this->get_meta_tb_data();
+		$this->get_meta_tb_data();
 
 		return $this;
 	}
@@ -532,4 +547,90 @@ class Activity {
 		$this->tb_categories       = pm_tb_prefix() . 'pm_categories';
 		$this->tb_category_project = pm_tb_prefix() . 'pm_category_project';
 	}
+
+	    private function parse_meta( Activity $activity ) {
+        $parsed_meta = [];
+
+        switch ( $activity->resource_type ) {
+            case 'task':
+                $parsed_meta = $this->parse_meta_for_task( $activity );
+                break;
+
+            case 'task_list':
+                $parsed_meta = $this->parse_meta_for_task_list( $activity );
+                break;
+
+            case 'discussion_board':
+                $parsed_meta = $this->parse_meta_for_discussion_board( $activity );
+                break;
+
+            case 'milestone':
+                $parsed_meta = $this->parse_meta_for_milestone( $activity );
+                break;
+
+            case 'project':
+                $parsed_meta = $this->parse_meta_for_project( $activity );
+                break;
+
+            case 'comment':
+                $parsed_meta = $this->parse_meta_for_comment( $activity );
+                break;
+
+            case 'file':
+                $parsed_meta = $this->parse_meta_for_file( $activity );
+                break;
+        }
+
+        return $parsed_meta;
+    }
+
+    private function parse_meta_for_task( Activity $activity ) {
+        return $activity->meta;
+    }
+
+    private function parse_meta_for_task_list( Activity $activity ) {
+        return $activity->meta;
+    }
+
+    private function parse_meta_for_discussion_board( Activity $activity ) {
+        return $activity->meta;
+    }
+
+    private function parse_meta_for_milestone( Activity $activity ) {
+        return $activity->meta;
+    }
+
+    private function parse_meta_for_project( Activity $activity ) {
+        return $activity->meta;
+    }
+
+    private function parse_meta_for_file( Activity $activity ) {
+        return $activity->meta;
+    }
+
+    private function parse_meta_for_comment( Activity $activity ) {
+        $meta = [];
+
+        if ( ! is_array( $activity ) ) {
+            return $meta;
+        }
+
+        foreach ($activity->meta as $key => $value) {
+            if ( $key == 'commentable_type' && $value == 'file' ) {
+                $trans_commentable_type = pm_get_text( "resource_types.{$value}" );
+                $meta['commentable_id'] = $activity->meta['commentable_id'];
+                $meta['commentable_type'] = $activity->meta['commentable_type'];
+                $meta['trans_commentable_type'] = $trans_commentable_type;
+                $meta['commentable_title'] = $trans_commentable_type;
+            } elseif ( $key == 'commentable_type' ) {
+                $trans_commentable_type = pm_get_text( "resource_types.{$value}" );
+                $meta['commentable_id'] = $activity->meta['commentable_id'];
+                $meta['commentable_type'] = $activity->meta['commentable_type'];
+                $meta['trans_commentable_type'] = $trans_commentable_type;
+                $meta['commentable_title'] = $activity->meta['commentable_title'];
+            }
+        }
+
+        return $meta;
+    }
 }

@@ -46,11 +46,11 @@ export default {
             }
         },
         /**
-         * get single Milestones 
+         * get single Milestones
          *
          * @param {args} object [object with calback]
          */
-        
+
         getMilestone(args) {
             var self = this,
             pre_define = {
@@ -65,21 +65,22 @@ export default {
 
             var request = {
                 url: self.base_url + '/pm/v2/projects/'+self.project_id+'/milestones/'+self.$route.params.discussion_id+'?'+conditions,
+                // url: self.base_url + '/pm/v2/advanced/'+self.project_id+'/milestones/'+self.$route.params.discussion_id+'?'+conditions,
                 success (res) {
                     self.addMeta(res.data);
                     self.$store.commit( 'projectMilestones/setMilestone', res.data );
 
                     if (typeof args.callback === 'function') {
                         args.callback(res.data);
-                    } 
+                    }
                 }
             };
             self.httpRequest(request);
         },
 
         /**
-         * Retrive milestones 
-         * 
+         * Retrive milestones
+         *
          * @param {Object} args Object with callback
          */
          getMilestones(args){
@@ -97,7 +98,8 @@ export default {
             var conditions = self.generateConditions(args.conditions);
 
             var request = {
-                url: self.base_url + '/pm/v2/projects/'+self.project_id+'/milestones?'+ conditions,
+                // url: self.base_url + '/pm/v2/projects/'+self.project_id+'/milestones?'+ conditions,
+                url: self.base_url + '/pm/v2/advanced/'+self.project_id+'/milestones?'+ conditions,
                 success (res) {
                     res.data.map(function(milestone, index) {
                         self.addMeta(milestone, index);
@@ -145,10 +147,10 @@ export default {
 
                  /**
          * WP settings date format convert to pm.Moment date format with time zone
-         * 
-         * @param  string date 
-         * 
-         * @return string      
+         *
+         * @param  string date
+         *
+         * @return string
          */
         dateFormat ( date ) {
             if ( !date ) {
@@ -168,13 +170,13 @@ export default {
 
             } else if ( PM_Vars.wp_date_format == 'd/m/Y' ) {
                 format = 'DD/MM/YYYY';
-            } 
+            }
 
             return pm.Moment( date ).format(format);
         },
 
         /**
-         * Add new milestone 
+         * Add new milestone
          *
          * @param {object} args upgoment with data
          * @return { void } [description]
@@ -196,7 +198,7 @@ export default {
                 data: data,
                 success (res) {
                     self.addMeta(res.data);
-                    
+
                     self.$store.commit('projectMilestones/newMilestone', res.data);
                     self.$store.commit('projectMilestones/afterNewMilestoneUpdateMeta');
 
@@ -206,10 +208,10 @@ export default {
 
                     self.$root.$emit( 'after_comment' );
                     self.templateAction();
-                    
+
                     if(typeof args.callback === 'function'){
                         args.callback.call(self, res);
-                    }  
+                    }
                     self.$store.commit('updateProjectMeta', 'total_activities');
                     self.$store.commit('updateProjectMeta', 'total_milestones');
 
@@ -242,7 +244,7 @@ export default {
         },
 
         /**
-         * Update milesotne 
+         * Update milesotne
          * @param  {[Objecat]}   args [description]
          * @return {[type]}             [description]
          */
@@ -265,10 +267,10 @@ export default {
                 success (res) {
                     self.addMeta(res.data);
 
-                    // update milestone 
+                    // update milestone
                     self.$store.commit('projectMilestones/updateMilestone', res.data);
                     self.$root.$store.state.milestones_load = false;
-                   
+
                     // Display a success toast, with a title
                     pm.Toastr.success(res.message);
                     self.submit_disabled = false;
@@ -279,7 +281,7 @@ export default {
 
                     if(typeof args.callback === 'function'){
                         args.callback.call ( self, res );
-                    }  
+                    }
 
                     if ( self.section === 'milestones' ) {
                         self.afterNewMilestone();
@@ -309,8 +311,8 @@ export default {
 
         /**
          * Delete Milestone
-         * @param  {Object} args 
-         * @return {void}      
+         * @param  {Object} args
+         * @return {void}
          */
         deleteMilestone ( args ) {
             if ( ! confirm( this.__( 'Are you sure you want to delete this milestones?', 'wedevs-project-manager') ) ) {
@@ -323,7 +325,7 @@ export default {
 
             var args = jQuery.extend(true, pre_define, args );
             var self = this;
-            
+
             var request_data = {
                 url: self.base_url + '/pm/v2/projects/'+self.project_id+'/milestones/' + args.milestone_id + '/delete',
                 type: 'POST',
@@ -347,28 +349,28 @@ export default {
 
             if ( self.$route.params.current_page_number > 1 ) {
                 // named route
-                self.$router.push({ 
-                    name: 'milestones', 
-                    params: { 
-                        project_id: self.project_id 
+                self.$router.push({
+                    name: 'milestones',
+                    params: {
+                        project_id: self.project_id
                     }
                 });
-                
+
             }
         },
         /**
          * Get task completed percentage from todo list
-         * 
+         *
          * @param  array tasks
-         *  
-         * @return float       
+         *
+         * @return float
          */
         getProgressPercent: function( list ) {
-            
+
             if (typeof list ==  'undefined') {
                 return 0;
             }
-            
+
             var total_tasks     = parseInt(list.meta.total_incomplete_tasks) + parseInt(list.meta.total_complete_tasks), //tasks.length,
                 completed_tasks = list.meta.total_complete_tasks, //this.countCompletedTasks( list ),
                 progress        = ( 100 * completed_tasks ) / total_tasks;
@@ -378,10 +380,10 @@ export default {
 
         /**
          * Get task completed progress width
-         * 
-         * @param  array tasks 
-         * 
-         * @return obj       
+         *
+         * @param  array tasks
+         *
+         * @return obj
          */
         getProgressStyle: function( list ) {
             if ( typeof list == 'undefined' ) {
@@ -415,7 +417,7 @@ export default {
             var blank, miltemp;
 
             var milestones = this.$store.state.projectMilestones.milestones;
-            
+
             if(milestones.length){
                 blank = false; miltemp = true;
             }
@@ -456,7 +458,7 @@ export default {
                 },
 
                 error (res) {
-                  
+
                 }
             }
             self.httpRequest(request_data);

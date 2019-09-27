@@ -148,6 +148,8 @@ class Discussion_Board {
 			$with = explode( ',', $with );
 		}
 
+		array_push( $with,'creator','updater','users','milestone','files' );
+
 		$discussion_with_items =  array_intersect_key( (array) $discussion, array_flip( $with ) );
 
 		$items = array_merge($items,$discussion_with_items);
@@ -156,20 +158,102 @@ class Discussion_Board {
 	}
 
 	private function item_meta( $items, $discussion ) {
-		$meta = empty( $this->query_params['discussion_meta'] ) ? [] : $this->query_params['discussion_meta'];
+		// $meta = empty( $this->query_params['discussion_meta'] ) ? [] : $this->query_params['discussion_meta'];
 
-		if( ! $meta ) {
-			return $items;
-		}
-		$items['meta'] = empty( $discussion->meta ) ? [ 'data' => [] ] : [ 'data' => $discussion->meta];
+		// if( ! $meta ) {
+		// 	return $items;
+		// }
+		$items['meta'] = empty( $discussion->meta ) ? [] : $discussion->meta ;
 
 		return $items;
 	}
 
 	private function with() {
-		$this->include_comments()->include_users();
+		$this->include_comments()
+		->include_users()
+		->include_creator()
+		->include_updater()
+		->include_milestone()
+		->include_files();
+
 		$this->discussions = apply_filters( 'pm_discussion_with',$this->discussions, $this->discussion_ids, $this->query_params );
 
+		return $this;
+	}
+
+	private function include_files() {
+		global $wpdb;
+
+		$files             = [];
+		$tb_pm_files       = pm_tb_prefix() . 'pm_files';
+		$tb_boards         = pm_tb_prefix() . 'pm_boards';
+		$discussion_format = pm_get_prepare_format( $this->discussion_ids );
+		$query_data        = $this->discussion_ids;
+
+		$query ="SELECT DISTINCT $tb_pm_files.*,
+		$tb_pm_files.fileable_id as discussion_id FROM $tb_pm_files
+			WHERE $tb_pm_files.fileable_id IN ($discussion_format)
+			 AND $tb_pm_files.fileable_type = %s
+		";
+
+		array_push( $query_data , 'discussion_board' );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
+
+		foreach ( $results as $key => $result ) {
+			$discussion_id = $result->discussion_id;
+			unset($result->discussion_id);
+			$files[$discussion_id] = $result;
+		}
+
+		foreach ( $this->discussions as $key => $discussion ) {
+			$discussion->files['data'] = empty( $files[$discussion->id] ) ? [] : $files[$discussion->id];
+		}
+		return $this;
+	}
+
+	private function include_milestone() {
+		return $this;
+	}
+
+	private function include_creator() {
+		global $wpdb;
+		$creators             = [];
+		$tb_users          = pm_tb_prefix() . 'Users';
+		$tb_boards         = pm_tb_prefix() . 'pm_boards';
+		$discussion_format = pm_get_prepare_format( $this->discussion_ids );
+		$query_data        = $this->discussion_ids;
+
+		$query ="SELECT DISTINCT $tb_users.* ,$tb_boards.id as discussion_id FROM $tb_users
+			LEFT JOIN $tb_boards  ON $tb_boards.created_by = $tb_users.id
+			WHERE $tb_boards.id IN ($discussion_format)
+			AND $tb_boards.type = %s
+			group by $tb_boards.id
+		";
+
+		array_push( $query_data , 'discussion_board' );
+
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_data ) );
+
+		foreach ( $results as $key => $result ) {
+			$discussion_id = $result->discussion_id;
+			$results[$key]->manage_capability = (int) pm_has_manage_capability($result->ID);
+			$results[$key]->create_capability = (int) pm_has_project_create_capability($result->ID);
+			$results[$key]->avatar_url        = get_avatar_url( $result->user_email );
+			$results[$key]->github            = get_user_meta($result->ID,'github' ,true);
+			$results[$key]->bitbucket         = get_user_meta($result->ID,'bitbucket', true);
+			unset($result->discussion_id);
+			$creators[$discussion_id] = $result;
+		}
+
+		foreach ( $this->discussions as $key => $discussion ) {
+			$discussion->creator['data'] = empty( $creators[$discussion->id] ) ? [] : $creators[$discussion->id];
+		}
+
+		return $this;
+	}
+
+	private function include_updater() {
 		return $this;
 	}
 
@@ -193,9 +277,8 @@ class Discussion_Board {
 		$query_data        = $this->discussion_ids;
 
 		$query ="SELECT DISTINCT $tb_pm_comments.*,
-		$tb_boards.id as discussion_id FROM $tb_pm_comments
-			LEFT JOIN $tb_boards  ON $tb_boards.id = $tb_pm_comments.commentable_id
-			WHERE $tb_boards.id IN ($discussion_format)
+		$tb_pm_comments.commentable_id as discussion_id FROM $tb_pm_comments
+			WHERE $tb_pm_comments.commentable_id IN ($discussion_format)
 			 AND $tb_pm_comments.commentable_type = %s
 		";
 
@@ -206,11 +289,11 @@ class Discussion_Board {
 		foreach ( $results as $key => $result ) {
 			$discussion_id = $result->discussion_id;
 			unset($result->discussion_id);
-			$comments[$discussion_id] = $result;
+			$comments[$discussion_id][] = $result;
 		}
 
 		foreach ( $this->discussions as $key => $discussion ) {
-			$discussion->comments['data'] = empty( $comments[$discussion->id] ) ? [] : $comments[$discussion->id];
+			$discussion->comments['data'] = empty( $comments[$discussion->id] ) ? [] : $comments[$discussion->id ];
 		}
 
 		return $this;
@@ -218,17 +301,17 @@ class Discussion_Board {
 
 	private function include_users() {
 		global $wpdb;
-		$with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
+		// $with = empty( $this->query_params['with'] ) ? [] : $this->query_params['with'];
 
-		if ( ! is_array( $with ) ) {
-			$with = explode( ',', $with );
-		}
+		// if ( ! is_array( $with ) ) {
+		// 	$with = explode( ',', $with );
+		// }
 
-		$users = [];
+		// $users = [];
 
-		if ( ! in_array( 'users', $with ) ) {
-			return $this;
-		}
+		// if ( ! in_array( 'users', $with ) ) {
+		// 	return $this;
+		// }
 
 		$tb_users          = pm_tb_prefix() . 'Users';
 		$tb_boardable      = pm_tb_prefix() . 'pm_boardables';
