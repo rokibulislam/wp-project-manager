@@ -1279,8 +1279,6 @@ class Project {
 				{$this->where}
 				{$this->orderby}
 				{$this->limit}";
-		// echo $wpdb->prepare( $query, 1, 1 );
-		// die();
 
 		$results = $wpdb->get_results( $wpdb->prepare( $query, 1, 1 ) );
 

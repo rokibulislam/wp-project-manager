@@ -2,7 +2,7 @@
 	<div class="my-task-filter-wrap">
 		<form class="form" action="" @submit.prevent="find()">
 			<div class="field">
-				<input type="text" :placeholder="__('Task title', 'wedevs-project-manager')" name="task_title" v-model="search.title">
+				<input type="text" :placeholder="__('Search by Task Title', 'wedevs-project-manager')" name="task_title" v-model="search.title">
 			</div>
 			<div class="field project-dropdown-wrap">
                 <multiselect
@@ -14,6 +14,7 @@
                     :loading="asyncProjectLoading"
                     :placeholder="__('All Projects', 'pm-pro')"
                     @search-change="asyncProjectFind($event)"
+                    @input="changeCountry($event)"
                     label="title"
                     track-by="id">
                     <span slot="noResult">{{ __( 'No project found.', 'wedevs-project-manager' ) }}</span>
@@ -37,7 +38,7 @@
             </div> -->
 
              <div class="field">
-                <select v-model="search.status">
+                <select v-model="search.status" @change="changeStatus()">
                 	<option value="current">{{ __( 'Current Task', 'wedevs-project-manager' ) }}</option>
                 	<option value="outstanding">{{ __( 'Outstanding Task', 'wedevs-project-manager' ) }}</option>
                 	<option value="completed">{{ __( 'Completed', 'wedevs-project-manager' ) }}</option>
@@ -75,8 +76,18 @@
 					:tasks="tasks">
 						
 				</current-task>
-				<outstanding-task v-if="component == 'outstanding'" :tasks="tasks"></outstanding-task>
-				<completed-task v-if="component == 'completed'" :tasks="tasks"></completed-task>
+				<outstanding-task 
+					@columnSorting="sortQuery"
+					v-if="component == 'outstanding'" 
+					:tasks="tasks">
+						
+				</outstanding-task>
+				<completed-task 
+					@columnSorting="sortQuery"
+					v-if="component == 'completed'" 
+					:tasks="tasks">
+						
+				</completed-task>
 			</div>
 		</div>
 
@@ -244,6 +255,13 @@
 		},
 
 		methods: {
+			changeStatus () {
+				this.find();
+			},
+			changeCountry (project) {
+				//if(!project) return;
+				this.find();
+			},
 			sortQuery (odrPram) {
 				this.search.orderby = odrPram.orderby+':'+odrPram.order;
 				this.find();
@@ -316,6 +334,7 @@
 	                success (res) {
 	                    self.projects = res.data;
 	                    self.setProjectsField();
+	                    pm.NProgress.done();
 	                },
 	                error (res) {
 	                    
@@ -356,7 +375,7 @@
 					due_date: this.search.due_date,
 					login_user: this.setLoginUser(),
 					status: this.search.status,
-					assignees: this.setLoginUser(),
+					users: this.setLoginUser(),
 					orderby: this.search.orderby
 				}
 

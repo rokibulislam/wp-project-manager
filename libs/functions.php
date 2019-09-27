@@ -81,20 +81,6 @@ function format_date( $date ) {
     ];
 }
 
-function pm_format_date( $date ) {
-    $date_format = get_option( 'date_format' );
-    $time_format = get_option( 'time_format' );
-    $timezone    = get_wp_timezone();
-
-    return [
-        'date'      => $date ? date( $date_format, strtotime( $date ) ) : null,
-        'time'      => $date ? date( $time_format, strtotime( $date ) ) : null,
-        'datetime'  => $date ? date( $date_format .' '. $time_format, strtotime( $date ) ) : null,
-        'timezone'  => tzcode_to_tzstring( $timezone ),
-        'timestamp' => $date ?  strtotime( $date ) : null
-    ];
-}
-
 function make_carbon_date( $date ) {
     $timezone = get_wp_timezone();
     $timezone = tzcode_to_tzstring( $timezone );
@@ -826,4 +812,19 @@ function pm_get_prepare_format( $ids, $is_string = false  ) {
     $format = implode( ', ', $placeholders );
 
     return $format;
+}
+
+/**
+ * Clean variables using pm_clean. Arrays are cleaned recursively.
+ * Non-scalar values are ignored.
+ *
+ * @param string|array $var Data to sanitize.
+ * @return string|array
+ */
+function pm_clean( $var ) {
+    if ( is_array( $var ) ) {
+        return array_map( 'pm_clean', $var );
+    } else {
+        return is_scalar( $var ) ? sanitize_text_field( wp_unslash( $var ) ) : $var;
+    }
 }
