@@ -111,9 +111,11 @@
                                 <span >
                                     {{ __("Task List:", 'wedevs-project-manager' ) }}
                                 </span>
-                                <strong class="list-title">
-                                    {{ task.task_list.data.title }}
-                                </strong>
+                                <a @click.prevent="activeListModal(task)" href="#">
+                                    <strong class="list-title">
+                                        {{ task.task_list.data.title }}
+                                    </strong>
+                                </a>
                             </div>
                         </div>
 
@@ -306,6 +308,12 @@
 
             </div>
         </div>
+        <ListChangeTaskModal
+            v-if="istaskChangeListModalActive"
+            :task="modaltask"
+            @closeListChangeTaskModal="istaskChangeListModalActive=false"
+        >
+        </ListChangeTaskModal>
     </div>
 
 </template>
@@ -327,6 +335,7 @@
     import Multiselect from 'vue-multiselect';
     import ActivityParser from '@components/common/activity-parser.vue';
     import editor from '@components/common/text-editor.vue';
+    import ListChangeTaskModal from './listchangetask.vue';
 
     Vue.directive('activity-load-more', {
         bind: function(el, binding, vnode) {
@@ -382,7 +391,9 @@
                 show_spinner_status: false,
                 show_spinner: false,
                 taskUpdating: false,
-                truckTitleUpdate: ''
+                truckTitleUpdate: '',
+                istaskChangeListModalActive: false,
+                modaltask: {}
             }
         },
 
@@ -473,6 +484,7 @@
             'do-action': DoAction,
             'activity-parser': ActivityParser,
             'text-editor': editor,
+            'ListChangeTaskModal': ListChangeTaskModal
         },
 
         created() {
@@ -1014,6 +1026,11 @@
 
                 return pm.Moment( date ).format( String( format ) );
             },
+
+            activeListModal(task) {
+                this.istaskChangeListModalActive = true;
+                this.modaltask = task;
+            }
         },
 
         destroyed () {
