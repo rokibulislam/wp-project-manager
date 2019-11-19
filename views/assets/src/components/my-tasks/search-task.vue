@@ -45,13 +45,13 @@
                 </select>
             </div>
             <!-- <div class="field">
-	            <pm-date-range-picker 
+	            <pm-date-range-picker
 	            	:startDate="search.start_at"
 	            	:endDate="search.due_date"
 	            	:options="calendarOptions"
 	            	@apply="calendarOnChange"
 	            	@cancel="calendarCancel">
-	            	
+
 	            </pm-date-range-picker>
 	        </div> -->
 	        <div>
@@ -70,33 +70,33 @@
 	            </div>
 	        </div>
 			<div class="tasks-wrap">
-				<current-task 
+				<current-task
 					@columnSorting="sortQuery"
-					v-if="component == 'current'" 
+					v-if="component == 'current'"
 					:tasks="tasks">
-						
+
 				</current-task>
-				<outstanding-task 
+				<outstanding-task
 					@columnSorting="sortQuery"
-					v-if="component == 'outstanding'" 
+					v-if="component == 'outstanding'"
 					:tasks="tasks">
-						
+
 				</outstanding-task>
-				<completed-task 
+				<completed-task
 					@columnSorting="sortQuery"
-					v-if="component == 'completed'" 
+					v-if="component == 'completed'"
 					:tasks="tasks">
-						
+
 				</completed-task>
 			</div>
 		</div>
 
 		<pm-pagination v-if="parseInt($route.params.user_id)"
-            :total_pages="total_task_page" 
-            :current_page_number="current_page_number" 
+            :total_pages="total_task_page"
+            :current_page_number="current_page_number"
             component_name='my_task_pagination'>
-            
-        </pm-pagination> 
+
+        </pm-pagination>
 	</div>
 </template>
 
@@ -191,7 +191,7 @@
 				individualTaskId: 0,
 				individualProjectId: 0,
 				isLoading: false,
-				current_page_number: typeof this.$route.params.current_page_number == 'undefined' ? 
+				current_page_number: typeof this.$route.params.current_page_number == 'undefined' ?
 					1 : this.$route.params.current_page_number,
 				total_task_page: 0,
 				search: {
@@ -280,7 +280,7 @@
                     }
                 }).href;
                 var url = PM_Vars.project_page + url;
-                //var url = PM_Vars.project_page + '#/projects/' + task.project_id + '/task-lists/tasks/' + task.id; 
+                //var url = PM_Vars.project_page + '#/projects/' + task.project_id + '/task-lists/tasks/' + task.id;
                 this.copy(url);
 			},
 			getContentClass () {
@@ -298,7 +298,7 @@
 				if(this.search.start_at == '' || this.search.due_date == '') {
 					this.calendarOptions.autoUpdateInput = false;
 				}
-				
+
 				this.find();
 			},
 			asyncProjectFind (val) {
@@ -312,7 +312,7 @@
 			calendarOnChange (start, end, className) {
 				this.search.start_at = start.format('YYYY-MM-DD');
 				this.search.due_date = end.format('YYYY-MM-DD');
-				
+
 				jQuery('.'+className).val(this.search.start_at +'-'+this.search.due_date);
 			},
 
@@ -337,7 +337,7 @@
 	                    pm.NProgress.done();
 	                },
 	                error (res) {
-	                    
+
 	                },
 	            }
 
@@ -347,11 +347,11 @@
 			setProjectsField () {
 				var projects = [];
 				var self = this;
-				
+
 				if(typeof this.$route.query.projects == 'undefined') {
 					return;
 				}
-				
+
 				if(this.is_array(this.$route.query.projects)) {
 					this.$route.query.projects.forEach(function(projectId) {
 						let index = self.getIndex( self.projects, parseInt(projectId), 'id' );
@@ -364,7 +364,7 @@
 				}
 
 				self.search.projects = projects;
-				
+
 			},
 
 			find () {
@@ -384,7 +384,7 @@
 						current_page_number: 1
 					}
 				});
-				
+
 				this.$router.push({query: request});
 
 				this.sendRequest();
@@ -414,14 +414,15 @@
 					delete data.projects;
 				}
 
+				data.liststatus = 1;
 				data.with = 'task_list,project';
 				data.select = 'id, title, created_at, start_at, due_date, completed_at';
 				data.per_page = 20;
-				data.pages = typeof this.$route.params.current_page_number == 'undefined' ? 
+				data.pages = typeof this.$route.params.current_page_number == 'undefined' ?
 						1 : this.$route.params.current_page_number;
-				
+
 				var request_data = {
-	                url: self.base_url + '/pm/v2/advanced/tasks',
+	                url: self.base_url + '/pm/v2/tasks',
 	                data: data,
 	                type: 'GET',
 	                success (res) {
@@ -432,7 +433,7 @@
 	                    pm.NProgress.done();
 	                },
 	                error (res) {
-	                    
+
 	                },
 	            }
 
@@ -464,7 +465,7 @@
 				if( this.is_object(this.search.projects) ) {
 					ids.push(this.search.projects.id);
 				}
-				
+
 				return ids;
 			}
 		},
