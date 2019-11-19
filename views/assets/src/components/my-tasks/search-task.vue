@@ -94,17 +94,17 @@
 					:tasks="tasks">
 
 				</current-task>
-				<outstanding-task 
+				<outstanding-task
 					@columnSorting="sortQuery"
-					v-if="component == 'outstanding'" 
+					v-if="component == 'outstanding'"
 					:tasks="tasks">
-						
+
 				</outstanding-task>
-				<completed-task 
+				<completed-task
 					@columnSorting="sortQuery"
-					v-if="component == 'completed'" 
+					v-if="component == 'completed'"
 					:tasks="tasks">
-						
+
 				</completed-task>
 			</div>
 		</div>
@@ -440,6 +440,7 @@
 					delete data.projects;
 				}
 
+				data.liststatus = 1;
 				data.with = 'task_list,project';
 				data.select = 'id, title, created_at, start_at, due_date, completed_at';
 				data.per_page = 20;
@@ -447,7 +448,7 @@
 						1 : this.$route.params.current_page_number;
 
 				var request_data = {
-	                url: self.base_url + '/pm/v2/advanced/tasks',
+	                url: self.base_url + '/pm/v2/tasks',
 	                data: data,
 	                type: 'GET',
 	                success (res) {

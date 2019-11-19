@@ -417,7 +417,9 @@ class Task {
 			->where_due_date()
 			->where_start_at()
 			->where_project_id()
-			->where_assignees();
+			->where_liststatus()
+			->where_users()
+			->where_lists();
 
 		$this->where = apply_filters( 'pm_task_where', $this->where, $this->user_id );
 
@@ -463,7 +465,7 @@ class Task {
 		return is_array( $args ) ? $args : [$args];
     }
 
-	private function where_assignees() {
+	private function where_users() {
 		$users = isset( $this->query_params['users'] ) ? $this->query_params['users'] : false;
 
 		if ( empty( $users ) ) {
@@ -479,6 +481,8 @@ class Task {
 		$this->join .= " LEFT JOIN {$tb_asin} ON $tb_asin.task_id={$this->tb_tasks}.id";
 		
 		$this->where .= $wpdb->prepare( " AND $tb_asin.assigned_to IN ($format)", $users );
+
+		return $this;
 	}
 
 	private function where_project_id() {
@@ -611,6 +615,20 @@ class Task {
 
 		return $this;
 	}
+
+	private function where_liststatus() {
+		$status = isset( $this->query_params['liststatus'] ) ? $this->query_params['liststatus'] : false;
+
+		if ( $status === false ) {
+			return $this;
+		}
+
+		global $wpdb;
+
+		$this->where .= $wpdb->prepare( " AND list.status=%s", $status );
+
+		return $this;
+	}	
 
 	/**
 	 * Filter task by title
