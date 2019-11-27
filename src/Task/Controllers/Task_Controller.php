@@ -579,7 +579,7 @@ class Task_Controller {
     }
 
     public function task_sorting( WP_REST_Request $request ) {
-
+        $self = self::getInstance();
         $project_id = $request->get_param( 'project_id' );
         $list_id    = $request->get_param( 'list_id' );
         $task_id    = $request->get_param( 'task_id' );
@@ -623,7 +623,9 @@ class Task_Controller {
             'task'           => $task,
             'sender_list_id' => $sender_list_id,
             'list_id'        => $list_id,
-            'project_id'     => $project_id
+            'project_id'     => $project_id,
+            'message'        => pm_get_text('success_messages.task_deleted'),
+            'activity'       => $self->last_activity( 'task', $task_id ),
         ] );
     }
 

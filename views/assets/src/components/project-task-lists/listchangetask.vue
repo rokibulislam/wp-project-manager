@@ -431,6 +431,7 @@
             setList (list) {
                 this.list = list;
             },
+
             changetasklist () {
                 if(this.submitProcessing) {
                     return;
@@ -468,26 +469,21 @@
                             {
                                 list_id: self.list.id,
                                 task: res.data.task.data,
-                                list: self.task.task_list.data
                             }
                         );
 
                         self.close();
-                        self.$router.push({
-                            name: 'single_task',
-                            params: {
-                                project_id: res.data.project_id,
-                                task_id: res.data.task.data.id,
-                                list_id: res.data.list_id
-                            }
+                        self.$emit('afterChangetasklist',{
+                            res: res,
+                            taskId: self.task.id,
+                            listId: self.list.id,
+                            senderListId: res.data.sender_list_id,
+                            senderTask: self.task,
+                            task: res.data.task.data
                         });
                     }
                 };
                 self.httpRequest(request);
-            },
-
-            addTaskMeta ( task ) {
-                task.edit_mode = false;
             },
         }
     }

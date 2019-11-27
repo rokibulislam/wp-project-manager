@@ -312,7 +312,9 @@
             v-if="istaskChangeListModalActive"
             :task="modaltask"
             @closeListChangeTaskModal="istaskChangeListModalActive=false"
-        >
+            @afterChangetasklist="afterChangetasklist"
+          >
+
         </ListChangeTaskModal>
     </div>
 
@@ -393,7 +395,8 @@
                 taskUpdating: false,
                 truckTitleUpdate: '',
                 istaskChangeListModalActive: false,
-                modaltask: {}
+                modaltask: {},
+                test: {}
             }
         },
 
@@ -454,13 +457,13 @@
                     this.task.assignees.data = selected_users;
 
                     this.updateTaskElement(this.task, function(res) {
-                        
+
                         pmBus.$emit('after_update_single_task_user', {
-                            beforeUpdate: self.task, 
+                            beforeUpdate: self.task,
                             afterUpdate: res.data
                         });
 
-                        self.task.assignees.data = res.data.assignees.data; 
+                        self.task.assignees.data = res.data.assignees.data;
                     });
                 }
             },
@@ -856,7 +859,7 @@
                     pm.Toastr.error(__('Invalid date range!', 'wedevs-project-manager'));
                     return;
                 }
-                
+
 
                 var update_data  = {
                         'title': task.title,
@@ -880,7 +883,7 @@
                     url: url,
                     data: update_data,
                     type: 'POST',
-                    
+
                     success (res) {
                         pmBus.$emit('pm_after_update_single_task', res);
                         self.is_task_title_edit_mode = false;
@@ -1030,6 +1033,44 @@
             activeListModal(task) {
                 this.istaskChangeListModalActive = true;
                 this.modaltask = task;
+            },
+
+            afterChangetasklist(data) {
+                var self = this;
+                // self.closePopup();
+                 console.log(data.res.data.activity.data);
+                 console.log(self.task);
+                if (data.res.data.task.data) {
+                    self.addTaskMeta(data.res.data.task.data);
+                }
+                self.$store.commit( 'projectTaskLists/afterDeleteTask', {
+                   // task: data.senderTask,
+                   // list: { id: data.senderListId }
+                    task: this.task,
+                    list: this.task.task_list.data,
+                });
+
+                self.$store.commit('updateProjectMeta', 'total_activities');
+
+                if ( typeof self.task.activities !== 'undefined' ) {
+                //     console.log('defined');
+                //     console.log(data.res.activity.data);
+                     self.task.activities.data.unshift(data.res.data.activity.data);
+                } else {
+                //     console.log('undefined');
+                //     // self.task.activities = { data: [data.res.data.activity.data] };
+                }
+
+
+
+                self.$store.commit( 'projectTaskLists/afterNewTask',
+                    {
+                        list_id: data.listId,
+                        task: data.task,
+                    }
+                );
+
+
             }
         },
 
